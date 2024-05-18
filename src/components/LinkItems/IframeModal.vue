@@ -1,10 +1,29 @@
 <template>
-  <modal :name="name" :resizable="true" width="80%" height="80%" @closed="modalClosed()"
-    classes="dashy-modal">
-    <div slot="top-right" @click="hide()">Close</div>
+  <modal
+    :name="name"
+    :resizable="true"
+    width="80%"
+    height="80%"
+    @closed="modalClosed()"
+    classes="dashy-modal"
+    :style="{ left: modalLeft + 'px', top: modalTop + 'px' }"
+  >
+    <div
+      slot="top-right"
+      @click="hide()"
+      @mousedown="startDrag"
+      class="drag-handle"
+    >
+      Close
+    </div>
     <a @click="hide()" class="close-button" title="Close">x</a>
-    <iframe v-if="url" :src="url" @keydown.esc="close" class="frame"
-      allow="fullscreen; clipboard-write" />
+    <iframe
+      v-if="url"
+      :src="url"
+      @keydown.esc="close"
+      class="frame"
+      allow="fullscreen; clipboard-write"
+    />
     <div v-else class="no-url">No URL Specified</div>
   </modal>
 </template>
@@ -17,9 +36,18 @@ export default {
   props: {
     name: String,
   },
-  data: () => ({
-    url: '#',
-  }),
+  data() {
+    return {
+      url: '#',
+      isDragging: false,
+      modalLeft: 0,
+      modalTop: 0,
+      initialX: 0,
+      initialY: 0,
+      xOffset: 0,
+      yOffset: 0,
+    };
+  },
   methods: {
     show(url) {
       this.url = url;
@@ -32,20 +60,38 @@ export default {
     modalClosed() {
       this.$store.commit(Keys.SET_MODAL_OPEN, false);
     },
+    startDrag(event) {
+      this.initialX = event.clientX - this.modalLeft;
+      this.initialY = event.clientY - this.modalTop;
+      this.isDragging = true;
+      document.addEventListener('mousemove', this.dragModal);
+      document.addEventListener('mouseup', this.stopDrag);
+    },
+    dragModal(event) {
+      if (this.isDragging) {
+        event.preventDefault();
+        this.modalLeft = event.clientX - this.initialX;
+        this.modalTop = event.clientY - this.initialY;
+      }
+    },
+    stopDrag() {
+      this.isDragging = false;
+      document.removeEventListener('mousemove', this.dragModal);
+      document.removeEventListener('mouseup', this.stopDrag);
+    },
   },
 };
 </script>
 
 <style lang="scss">
-
 .frame {
   width: 100%;
   height: 100%;
-  border: 200;
+  border: none;
 }
 
 .no-url {
-  margin: 4rem auto;
+  margin: 70rem auto;
   width: fit-content;
   font-size: 2rem;
   padding: 0.5rem;
@@ -69,7 +115,11 @@ export default {
     background: var(--background);
     color: var(--primary);
   }
-
 }
 
+.drag-handle {
+  cursor: move;
+  background-color: #ccc; /* Asegúrate de que sea visible */
+  padding: 5px;
+}
 </style>
